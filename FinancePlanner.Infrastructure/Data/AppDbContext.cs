@@ -1,5 +1,6 @@
 ﻿using FinancePlanner.Infrastructure.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace FinancePlanner.Infrastructure.Data;
 
@@ -77,20 +78,44 @@ public class AppDbContext : DbContext
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        foreach (var entry in ChangeTracker.Entries<Transaction>())
+        var auditEntries = ChangeTracker.Entries()
+            .Where(e => e.Entity is not AuditLog
+                && e.State is EntityState.Added
+                    or EntityState.Modified
+                    or EntityState.Deleted)
+            .ToList();
+
+        foreach (var entry in auditEntries)
         {
-            if (entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
+            AuditLogs.Add(new AuditLog
             {
-                AuditLogs.Add(new AuditLog
-                {
-                    EntityName = nameof(Transaction),
-                    EntityId = entry.Entity.Id,
-                    Action = entry.State.ToString(),
-                    Timestamp = DateTime.UtcNow
-                });
-            }
+                EntityName = entry.Entity.GetType().Name,
+                EntityId = GetEntityId(entry),
+                Action = entry.State.ToString(),
+                Timestamp = DateTime.UtcNow,
+                OldValues = entry.State == EntityState.Modified || entry.State == EntityState.Deleted
+                    ? System.Text.Json.JsonSerializer.Serialize(
+                        entry.OriginalValues.Properties.ToDictionary(
+                            p => p.Name,
+                            p => entry.OriginalValues[p]?.ToString()))
+                    : null,
+                NewValues = entry.State == EntityState.Added || entry.State == EntityState.Modified
+                    ? System.Text.Json.JsonSerializer.Serialize(
+                        entry.CurrentValues.Properties.ToDictionary(
+                            p => p.Name,
+                            p => entry.CurrentValues[p]?.ToString()))
+                    : null
+            });
         }
 
         return await base.SaveChangesAsync(cancellationToken);
+    }
+
+    private int GetEntityId(EntityEntry entry)
+    {
+        var idProperty = entry.Properties
+            .FirstOrDefault(p => p.Metadata.IsPrimaryKey());
+
+        return idProperty?.CurrentValue is int id ? id : 0;
     }
 }

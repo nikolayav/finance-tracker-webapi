@@ -1,6 +1,6 @@
 ﻿using FinancePlanner.Infrastructure.Entities;
 
-namespace FinancePlanner.Infrastructure.Interfaces
+namespace FinancePlanner.Infrastructure.Repositories.Interfaces
 {
     public interface IUserRepository
     {

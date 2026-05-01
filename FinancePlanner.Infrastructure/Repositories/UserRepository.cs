@@ -1,7 +1,7 @@
 ﻿using FinancePlanner.Infrastructure.Entities;
 using FinancePlanner.Infrastructure.Data;
-using FinancePlanner.Infrastructure.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using FinancePlanner.Infrastructure.Repositories.Interfaces;
 
 namespace FinancePlanner.Infrastructure.Repositories
 {
