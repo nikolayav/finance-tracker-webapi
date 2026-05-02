@@ -1,24 +1,26 @@
 ﻿using FinancePlanner.API.Services.Interfaces;
-using FinancePlanner.Application.Services.Interfaces;
 using FinancePlanner.Common.DTOs.Auth;
 using FinancePlanner.Infrastructure.Entities;
 using FinancePlanner.Infrastructure.Repositories.Interfaces;
 
-namespace FinancePlanner.Application.Services
+namespace FinancePlanner.API.Services
 {
 
     public class AuthService : IAuthService
     {
         private readonly IUserRepository _userRepository;
+        private readonly IRefreshTokenRepository _refreshTokenRepository;
         private readonly IJwtTokenService _jwtTokenService;
         private readonly ILogger<AuthService> _logger;
 
         public AuthService(
             IUserRepository userRepository,
+            IRefreshTokenRepository refreshTokenRepository,
             IJwtTokenService jwtTokenService,
             ILogger<AuthService> logger)
         {
             _userRepository = userRepository;
+            _refreshTokenRepository = refreshTokenRepository;
             _jwtTokenService = jwtTokenService;
             _logger = logger;
         }
@@ -42,11 +44,11 @@ namespace FinancePlanner.Application.Services
             };
 
             var created = await _userRepository.CreateAsync(user);
-            var token = _jwtTokenService.GenerateAccessToken(created);
+            var (accessToken, refreshToken) = await GenerateTokenPairAsync(created);
 
             _logger.LogInformation("User {UserId} registered successfully", created.Id);
 
-            return new AuthResponse(token, created.Email, created.DisplayName);
+            return new AuthResponse(accessToken, refreshToken, created.Email, created.DisplayName);
         }
 
         public async Task<AuthResponse> LoginAsync(LoginRequest request)
@@ -60,11 +62,50 @@ namespace FinancePlanner.Application.Services
                 throw new UnauthorizedAccessException("Invalid email or password.");
             }
 
-            var token = _jwtTokenService.GenerateAccessToken(user);
+            var (accessToken, refreshToken) = await GenerateTokenPairAsync(user);
 
-            _logger.LogInformation("User {UserEmail} logged in successfully", user.Email);
+            _logger.LogInformation("User {UserId} logged in successfully", user.Id);
 
-            return new AuthResponse(token, user.Email, user.DisplayName);
+            return new AuthResponse(accessToken, refreshToken, user.Email, user.DisplayName);
+        }
+
+        public async Task<AuthResponse> RefreshAsync(RefreshRequest request)
+        {
+            _logger.LogInformation("Refresh token attempt");
+
+            var existing = await _refreshTokenRepository.GetByTokenAsync(request.RefreshToken);
+
+            if (existing is null || !existing.IsValid)
+            {
+                _logger.LogWarning("Refresh token invalid or expired");
+                throw new UnauthorizedAccessException("Invalid or expired refresh token.");
+            }
+
+            // Delete the used token — one-time use
+            await _refreshTokenRepository.DeleteAsync(existing);
+
+            // Issue a new access + refresh token pair
+            var (accessToken, newRefreshToken) = await GenerateTokenPairAsync(existing.User);
+
+            _logger.LogInformation("Token refreshed for user {UserId}", existing.UserId);
+
+            return new AuthResponse(accessToken, newRefreshToken, existing.User.Email, existing.User.DisplayName);
+        }
+
+        private async Task<(string accessToken, string refreshToken)> GenerateTokenPairAsync(User user)
+        {
+            var accessToken = _jwtTokenService.GenerateAccessToken(user);
+
+            var refreshToken = new RefreshToken
+            {
+                UserId = user.Id,
+                Token = _jwtTokenService.GenerateRefreshToken(),
+                Expiry = DateTime.UtcNow.AddDays(7)
+            };
+
+            await _refreshTokenRepository.CreateAsync(refreshToken);
+
+            return (accessToken, refreshToken.Token);
         }
     }
 }
