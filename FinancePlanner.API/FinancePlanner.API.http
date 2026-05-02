@@ -1,6 +1,92 @@
-@FinancePlanner.API_HostAddress = http://localhost:5141
+@baseUrl = https://localhost:7228
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwiZW1haWwiOiJ0ZXN0QHRlc3QuY29tIiwiaHR0cDovL3NjaGVtYXMueG1sc29hcC5vcmcvd3MvMjAwNS8wNS9pZGVudGl0eS9jbGFpbXMvbmFtZSI6IlRlc3QgVXNlciIsImp0aSI6IjljYTBjOTkxLTFmMjYtNGYxYS05OTlkLTAwNWI2MTlmN2E1NSIsImV4cCI6MTc3NzY2MTY2OCwiaXNzIjoiRmluYW5jZVBsYW5uZXIiLCJhdWQiOiJGaW5hbmNlUGxhbm5lciJ9.B0i0y6nzOH-kM7tMc2Yqgqja5Xc4vhn2vpGjujLey8U
 
-GET {{FinancePlanner.API_HostAddress}}/weatherforecast/
-Accept: application/json
+### Register
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
 
-###
+{
+  "email": "test@test.com",
+  "password": "Test@1234!",
+  "displayName": "Test User"
+}
+
+### Login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@test.com",
+  "password": "Test@1234!"
+}
+
+### Get Accounts
+GET {{baseUrl}}/api/accounts
+Authorization: Bearer {{token}}
+
+### Create Account
+POST {{baseUrl}}/api/accounts
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Main Checking",
+  "type": 0,
+  "currency": "EUR"
+}
+
+### Delete Account
+DELETE {{baseUrl}}/api/accounts/1
+Authorization: Bearer {{token}}
+
+### Get Transactions
+GET {{baseUrl}}/api/transactions
+Authorization: Bearer {{token}}
+
+### Get Transactions with filters
+GET {{baseUrl}}/api/transactions?from=2024-01-01&to=2024-12-31&category=Food
+Authorization: Bearer {{token}}
+
+### Create Transaction
+POST {{baseUrl}}/api/transactions
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "accountId": 2,
+  "amount": 500.00,
+  "currency": "EUR",
+  "type": 0,
+  "categoryName": "Salary",
+  "description": "Monthly salary",
+  "occurredOn": "2024-05-01T00:00:00"
+}
+
+### Delete Transaction
+DELETE {{baseUrl}}/api/transactions/1
+Authorization: Bearer {{token}}
+
+### Get Budgets
+GET {{baseUrl}}/api/budgets
+Authorization: Bearer {{token}}
+
+### Get Budgets with filters
+GET {{baseUrl}}/api/budgets?month=5&year=2024
+Authorization: Bearer {{token}}
+
+### Create Budget
+POST {{baseUrl}}/api/budgets
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "categoryName": "Food",
+  "limitAmount": 300.00,
+  "currency": "EUR",
+  "month": 5,
+  "year": 2024
+}
+
+### Delete Budget
+DELETE {{baseUrl}}/api/budgets/1
+Authorization: Bearer {{token}}
