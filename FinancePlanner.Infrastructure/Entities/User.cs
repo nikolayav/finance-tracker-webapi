@@ -8,5 +8,6 @@
         public string DisplayName { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public ICollection<Account> Accounts { get; set; } = new List<Account>();
+        public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
     }
 }

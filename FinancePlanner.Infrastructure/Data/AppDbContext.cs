@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<Transaction> Transactions => Set<Transaction>();
     public DbSet<Budget> Budgets => Set<Budget>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -74,12 +75,24 @@ public class AppDbContext : DbContext
             e.Property(a => a.OldValues).HasMaxLength(4000);
             e.Property(a => a.NewValues).HasMaxLength(4000);
         });
+
+        builder.Entity<RefreshToken>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.Property(r => r.Token).IsRequired().HasMaxLength(512);
+            e.HasIndex(r => r.Token).IsUnique();
+            e.HasOne(r => r.User)
+             .WithMany(u => u.RefreshTokens)
+             .HasForeignKey(r => r.UserId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         var auditEntries = ChangeTracker.Entries()
             .Where(e => e.Entity is not AuditLog
+                && e.Entity is not RefreshToken
                 && e.State is EntityState.Added
                     or EntityState.Modified
                     or EntityState.Deleted)

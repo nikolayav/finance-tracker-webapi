@@ -1,11 +1,12 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using FinancePlanner.API.Services.Interfaces;
 using FinancePlanner.Infrastructure.Entities;
 using Microsoft.IdentityModel.Tokens;
 
-namespace FinancePlanner.API.Jwt;
+namespace FinancePlanner.API.Services;
 
 public class JwtTokenService : IJwtTokenService
 {
@@ -42,5 +43,10 @@ public class JwtTokenService : IJwtTokenService
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    public string GenerateRefreshToken()
+    {
+        return Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
     }
 }

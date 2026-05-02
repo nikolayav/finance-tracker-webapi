@@ -3,7 +3,7 @@ using FinancePlanner.Common.DTOs.Account;
 using FinancePlanner.Infrastructure.Entities;
 using FinancePlanner.Infrastructure.Repositories.Interfaces;
 
-namespace FinancePlanner.Application.Services
+namespace FinancePlanner.API.Services
 {
 
     public class AccountService : IAccountService
